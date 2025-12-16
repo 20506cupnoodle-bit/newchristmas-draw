@@ -8,9 +8,9 @@
 
 <h1>輸入參與者資料</h1>
 
-<p>Code: <input type="text" id="code"></p>
-<p>Owner Name: <input type="text" id="ownerName"></p>
-<p>Info: <input type="text" id="info"></p>
+<p>Code: <input type="text" id="codeInput"></p>
+<p>Owner Name: <input type="text" id="ownerNameInput"></p>
+<p>Info: <input type="text" id="infoInput"></p>
 
 <button id="submitBtn">送出</button>
 <p id="msg"></p>
@@ -21,6 +21,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
 import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
+// 🔹 Firebase 設定（你的專案）
 const firebaseConfig = {
   apiKey: "AIzaSyALq77Yraym29l8OX2YCLBIBcBve4jo8Dc",
   authDomain: "christmas-draw-c07d6.firebaseapp.com",
@@ -32,6 +33,12 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+
+// ✅ 正確抓 DOM
+const codeInput = document.getElementById("codeInput");
+const ownerNameInput = document.getElementById("ownerNameInput");
+const infoInput = document.getElementById("infoInput");
+const msg = document.getElementById("msg");
 
 document.getElementById("submitBtn").onclick = async () => {
   const code = codeInput.value.trim();
@@ -49,16 +56,19 @@ document.getElementById("submitBtn").onclick = async () => {
       ownerName,
       info,
       drawn: false,
-      hasDrawn: false   // ✅ 關鍵
+      hasDrawn: false
     });
 
     msg.textContent = "新增成功！";
-    codeInput.value = ownerNameInput.value = infoInput.value = "";
+    codeInput.value = "";
+    ownerNameInput.value = "";
+    infoInput.value = "";
   } catch (e) {
     console.error(e);
-    msg.textContent = "發生錯誤";
+    msg.textContent = "發生錯誤，請查看 Console";
   }
 };
 </script>
+
 </body>
 </html>
