@@ -5,11 +5,13 @@
 <title>管理員輸入測資</title>
 </head>
 <body>
+
 <h1>輸入參與者資料</h1>
 
 <p>Code: <input type="text" id="code"></p>
 <p>Owner Name: <input type="text" id="ownerName"></p>
 <p>Info: <input type="text" id="info"></p>
+
 <button id="submitBtn">送出</button>
 <p id="msg"></p>
 
@@ -19,7 +21,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
 import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
-// 🔹 Firebase 設定
 const firebaseConfig = {
   apiKey: "AIzaSyALq77Yraym29l8OX2YCLBIBcBve4jo8Dc",
   authDomain: "christmas-draw-c07d6.firebaseapp.com",
@@ -32,33 +33,32 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const submitBtn = document.getElementById("submitBtn");
-submitBtn.addEventListener("click", async () => {
-  const code = document.getElementById("code").value.trim();
-  const ownerName = document.getElementById("ownerName").value.trim();
-  const info = document.getElementById("info").value.trim();
+document.getElementById("submitBtn").onclick = async () => {
+  const code = codeInput.value.trim();
+  const ownerName = ownerNameInput.value.trim();
+  const info = infoInput.value.trim();
 
-  if(!code || !ownerName || !info){
-    document.getElementById("msg").textContent = "請填寫所有欄位";
+  if (!code || !ownerName || !info) {
+    msg.textContent = "請填寫所有欄位";
     return;
   }
 
   try {
     await addDoc(collection(db, "participants"), {
-      code: code,
-      ownerName: ownerName,
-      info: info,
-      drawn: false
+      code,
+      ownerName,
+      info,
+      drawn: false,
+      hasDrawn: false   // ✅ 關鍵
     });
-    document.getElementById("msg").textContent = "新增成功！";
-    document.getElementById("code").value = "";
-    document.getElementById("ownerName").value = "";
-    document.getElementById("info").value = "";
-  } catch(e) {
+
+    msg.textContent = "新增成功！";
+    codeInput.value = ownerNameInput.value = infoInput.value = "";
+  } catch (e) {
     console.error(e);
-    document.getElementById("msg").textContent = "發生錯誤";
+    msg.textContent = "發生錯誤";
   }
-});
+};
 </script>
 </body>
 </html>
