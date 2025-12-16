@@ -1,124 +1,127 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8" />
-  <title>聖誕抽籤</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    body { font-family: Arial; text-align: center; padding: 40px; }
-    input, button { font-size: 18px; padding: 8px 14px; }
-    #result {
-      margin-top: 30px;
-      font-size: 22px;
-      color: #d63384;
-      line-height: 1.6;
-    }
-  </style>
+<meta charset="UTF-8" />
+<title>聖誕抽籤</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<style>
+  body { font-family: Arial; text-align: center; padding: 40px; }
+  input, button { font-size: 18px; padding: 8px 14px; }
+  #result {
+    margin-top: 30px;
+    font-size: 22px;
+    color: #d63384;
+    line-height: 1.6;
+  }
+</style>
 </head>
 <body>
 
 <h1>🎄 聖誕抽籤</h1>
 <p>請輸入你的號碼</p>
+
 <input id="codeInput" placeholder="例如 20506" />
 <br><br>
 <button id="drawBtn">揭曉我的小主人</button>
 
 <p id="result">輸入號碼後點擊按鈕</p>
-  
-<div id="result"></div>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
-  import {
-    getFirestore,
-    collection,
-    getDocs,
-    query,
-    where,
-    doc,
-    updateDoc
-  } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  query,
+  where,
+  doc,
+  updateDoc
+} from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
-  // 🔹 Firebase 設定（你的專案）
-    const firebaseConfig = {
-      apiKey: "AIzaSyALq77Yraym29l8OX2YCLBIBcBve4jo8Dc",
-      authDomain: "christmas-draw-c07d6.firebaseapp.com",
-      projectId: "christmas-draw-c07d6",
-      storageBucket: "christmas-draw-c07d6.firebasestorage.app",
-      messagingSenderId: "150938406696",
-      appId: "1:150938406696:web:ea9733014831f50029ca1d"
-    };
+const firebaseConfig = {
+  apiKey: "AIzaSyALq77Yraym29l8OX2YCLBIBcBve4jo8Dc",
+  authDomain: "christmas-draw-c07d6.firebaseapp.com",
+  projectId: "christmas-draw-c07d6",
+  storageBucket: "christmas-draw-c07d6.firebasestorage.app",
+  messagingSenderId: "150938406696",
+  appId: "1:150938406696:web:ea9733014831f50029ca1d"
+};
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-  const btn = document.getElementById("drawBtn");
-  const result = document.getElementById("result");
+const btn = document.getElementById("drawBtn");
+const result = document.getElementById("result");
 
-  btn.onclick = async () => {
-    const code = document.getElementById("codeInput").value.trim();
-    if (!code) {
-      result.textContent = "請輸入號碼";
+btn.onclick = async () => {
+  const code = codeInput.value.trim();
+  if (!code) {
+    result.textContent = "請輸入號碼";
+    return;
+  }
+
+  btn.disabled = true;
+  result.textContent = "抽籤中…";
+
+  try {
+    // 🔹 找自己
+    const selfSnap = await getDocs(
+      query(collection(db, "participants"), where("code", "==", code))
+    );
+
+    if (selfSnap.empty) {
+      result.textContent = "號碼不存在";
+      btn.disabled = false;
       return;
     }
 
-    btn.disabled = true;
-    result.textContent = "抽籤中…";
+    const self = { id: selfSnap.docs[0].id, ...selfSnap.docs[0].data() };
 
-    try {
-      // 找自己
-      const selfSnap = await getDocs(
-        query(collection(db, "participants"), where("code", "==", code))
-      );
-
-      if (selfSnap.empty) {
-        result.textContent = "號碼不存在";
-        btn.disabled = false;
-        return;
-      }
-
-      // 找可被抽的人（未被抽 + 不是自己）
-      const candidatesSnap = await getDocs(
-        query(collection(db, "participants"), where("drawn", "==", false))
-      );
-
-      const candidates = [];
-      candidatesSnap.forEach(d => {
-        if (d.data().code !== code) {
-          candidates.push({ id: d.id, ...d.data() });
-        }
-      });
-
-      if (candidates.length === 0) {
-        result.textContent = "已沒有可抽的人";
-        btn.disabled = false;
-        return;
-      }
-
-      // 隨機抽
-      const picked = candidates[Math.floor(Math.random() * candidates.length)];
-
-      // 鎖定
-      await updateDoc(doc(db, "participants", picked.id), {
-        drawn: true
-      });
-
-      result.innerHTML = `
-        🎁 你的小主人是：<br>
-        <strong>${picked.ownerName}</strong><br><br>
-        ${picked.info}
-      `;
-
-    } catch (e) {
-      console.error(e);
-      result.textContent = "系統錯誤，請稍後再試";
+    // 🔒 已抽過就不能再抽
+    if (self.hasDrawn) {
+      result.textContent = "你已經抽過了，不能再次抽籤";
+      btn.disabled = false;
+      return;
     }
 
-    btn.disabled = false;
-  };
+    // 🔹 找可被抽的人
+    const candidatesSnap = await getDocs(
+      query(collection(db, "participants"), where("drawn", "==", false))
+    );
+
+    const candidates = [];
+    candidatesSnap.forEach(d => {
+      if (d.data().code !== code) {
+        candidates.push({ id: d.id, ...d.data() });
+      }
+    });
+
+    if (candidates.length === 0) {
+      result.textContent = "已沒有可抽的人";
+      btn.disabled = false;
+      return;
+    }
+
+    const picked = candidates[Math.floor(Math.random() * candidates.length)];
+
+    // ✅ 同時鎖兩個人
+    await updateDoc(doc(db, "participants", picked.id), { drawn: true });
+    await updateDoc(doc(db, "participants", self.id), { hasDrawn: true });
+
+    result.innerHTML = `
+      🎄 你是小天使：<strong>${self.code}</strong><br><br>
+      🎁 你的小主人是：<br>
+      <strong>${picked.ownerName}</strong><br><br>
+      ${picked.info}
+    `;
+  } catch (e) {
+    console.error(e);
+    result.textContent = "系統錯誤，請稍後再試";
+  }
+
+  btn.disabled = false;
+};
 </script>
 
 </body>
 </html>
-
-
